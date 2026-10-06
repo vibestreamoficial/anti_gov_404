@@ -1,156 +1,59 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>anti_gov_404</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <div id="app">
+# anti_gov_404
 
-    <!-- ===== TELA INICIAL / REGRAS ===== -->
-    <section id="screen-home" class="screen active">
-      <div class="container">
-        <div class="logo">anti_gov_<span>404</span></div>
-        <p class="tagline">Acesso restrito • Grupo privado • Real</p>
+Sistema privado com painel administrativo, painel do dono e detector de ameaças/fake news/acusações falsas.
 
-        <div class="rules-box">
-          <h2>📜 Regras do Grupo</h2>
-          <ul>
-            <li>É proibido ameaças, acusações falsas e fake news.</li>
-            <li>Conteúdo gore, sexual explícito ou ilegal = ban permanente.</li>
-            <li>Respeito entre membros. Sem ofensas pessoais graves.</li>
-            <li>Não compartilhe dados pessoais de terceiros.</li>
-            <li>O bot de moderação atua 24h. Ban automático em casos graves.</li>
-            <li>Administradores podem banir e remover mensagens a qualquer momento.</li>
-            <li>Este é um espaço de discussão. Não use para atividades ilegais.</li>
-          </ul>
-        </div>
+## O que foi ajustado
 
-        <button class="btn primary" onclick="showScreen('auth')">Entrar / Cadastrar</button>
-        <p class="hint" id="home-hint">Site real com Supabase. Dados no banco de dados.</p>
-      </div>
-    </section>
+- Removeu o uso de Supabase do front-end.
+- Cria um backend próprio com Express e PostgreSQL.
+- Mantém painel admin e painel do dono visíveis apenas para cargos autorizados.
+- A bot de moderação bloqueia mensagens com conteúdo proibido antes de enviar.
+- O chat é privado e exige autenticação.
 
-    <!-- ===== LOGIN / CADASTRO ===== -->
-    <section id="screen-auth" class="screen">
-      <div class="container narrow">
-        <h1 id="auth-title">Entrar</h1>
-        <p class="sub" id="auth-sub">Use e-mail e senha</p>
+## Requisitos
 
-        <div class="tabs">
-          <button class="tab active" id="tab-login" onclick="switchAuthTab('login')">Login</button>
-          <button class="tab" id="tab-register" onclick="switchAuthTab('register')">Cadastrar</button>
-        </div>
+- Node.js 18+
+- PostgreSQL 14+
 
-        <form id="auth-form" onsubmit="handleAuth(event)">
-          <div id="nick-field" class="hidden">
-            <label>Nick / Apelido</label>
-            <input type="text" id="auth-nick" minlength="3" maxlength="20" placeholder="ex: phantom_404" />
-          </div>
+## Instalação
 
-          <label>E-mail</label>
-          <input type="email" id="auth-email" required placeholder="seu@email.com" />
+1. Crie o banco PostgreSQL:
+   ```bash
+   createdb anti_gov_404
+   ```
 
-          <label>Senha</label>
-          <input type="password" id="auth-password" required minlength="6" placeholder="mínimo 6 caracteres" />
+2. Copie o arquivo de ambiente:
+   ```bash
+   cp .env.example .env
+   ```
 
-          <div id="register-extra" class="hidden">
-            <label>Motivo / Por que quer entrar?</label>
-            <textarea id="auth-reason" minlength="10" maxlength="300" placeholder="Conte brevemente..."></textarea>
+3. Ajuste as variáveis do banco e JWT.
 
-            <label>Como conheceu o grupo?</label>
-            <input type="text" id="auth-how" maxlength="100" placeholder="opcional" />
-          </div>
+4. Instale dependências:
+   ```bash
+   npm install
+   ```
 
-          <button type="submit" class="btn primary full" id="auth-btn">Entrar</button>
-        </form>
+5. Inicie o servidor:
+   ```bash
+   npm start
+   ```
 
-        <p id="auth-error" class="error-msg hidden"></p>
-        <button class="btn ghost" onclick="showScreen('home')">Voltar</button>
-      </div>
-    </section>
+## Fluxo
 
-    <!-- ===== AGUARDANDO APROVAÇÃO ===== -->
-    <section id="screen-pending" class="screen">
-      <div class="container narrow center">
-        <div class="icon-big">⏳</div>
-        <h1>Aguardando aprovação</h1>
-        <p>Sua conta foi criada.<br>Um administrador precisa te aceitar.</p>
-        <p class="nick-display" id="pending-nick"></p>
-        <button class="btn ghost" onclick="logout()">Sair</button>
-      </div>
-    </section>
+- Cadastro cria usuário com status `pending`.
+- Admin aprova ou rejeita a solicitação.
+- Usuário aprovado entra no chat.
+- Bot bloqueia conteúdo suspeito.
+- Dono pode promover admins.
 
-    <!-- ===== BANIDO ===== -->
-    <section id="screen-banned" class="screen">
-      <div class="container narrow center">
-        <div class="icon-big">🚫</div>
-        <h1>Você foi banido</h1>
-        <p id="ban-reason-text">Motivo: violação das regras.</p>
-        <button class="btn ghost" onclick="logout()">Sair</button>
-      </div>
-    </section>
+## Painel do Dono
 
-    <!-- ===== CHAT GLOBAL ===== -->
-    <section id="screen-chat" class="screen">
-      <header class="chat-header">
-        <div class="logo-sm">anti_gov_<span>404</span></div>
-        <div class="header-right">
-          <span id="user-role" class="badge"></span>
-          <span id="user-nick"></span>
-          <button class="btn-icon" onclick="toggleAdminPanel()" id="btn-admin" title="Painel Admin" style="display:none">⚙️</button>
-          <button class="btn-icon" onclick="logout()" title="Sair">⏻</button>
-        </div>
-      </header>
+O dono é o único perfil com acesso completo ao gerenciamento de admins e visualização do sistema.
 
-      <div id="messages" class="messages"></div>
+## Segurança
 
-      <div class="chat-input-area">
-        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="sendPhoto(event)" />
-        <button class="btn-icon" onclick="document.getElementById('photo-input').click()" title="Enviar foto">📷</button>
-        <input type="text" id="msg-input" placeholder="Digite sua mensagem..." maxlength="500" onkeydown="if(event.key==='Enter')sendMessage()" />
-        <button class="btn primary" onclick="sendMessage()">Enviar</button>
-      </div>
-    </section>
-
-    <!-- ===== PAINEL ADMIN ===== -->
-    <div id="admin-panel" class="admin-panel hidden">
-      <div class="admin-header">
-        <h2>Painel Administrador</h2>
-        <button class="btn-icon" onclick="toggleAdminPanel()">✕</button>
-      </div>
-
-      <div class="admin-section">
-        <h3>Solicitações Pendentes</h3>
-        <div id="pending-list"></div>
-      </div>
-
-      <div class="admin-section">
-        <h3>Membros</h3>
-        <div id="members-list"></div>
-      </div>
-
-      <div class="admin-section">
-        <h3>Ações rápidas</h3>
-        <button class="btn danger full" onclick="clearChat()">Limpar todo o chat</button>
-      </div>
-
-      <div id="owner-section" class="admin-section hidden">
-        <h3>🔑 Painel do Dono</h3>
-        <p class="small">Promover membro a Administrador:</p>
-        <div class="row">
-          <input type="text" id="promote-nick" placeholder="Nick do usuário" />
-          <button class="btn primary" onclick="promoteToAdmin()">Promover</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <script src="config.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+- Senhas com hash via bcrypt
+- JWT para autenticação
+- Middleware de autorização por perfil
+- Conteúdo proibido detectado automaticamente antes do envio
