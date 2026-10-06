@@ -1,5 +1,5 @@
 // ==================== CONFIG ====================
-const OWNER_PASSWORD = "404owner"; // senha do dono (mude se quiser)
+const OWNER_PASSWORD = "Vx9#mK2$pL7qR4!nT"; // senha do dono (não publique)
 const STORAGE_KEY = "anti_gov_404_data";
 
 // Palavras e padrões que o bot detecta (ban automático)
@@ -401,10 +401,10 @@ function resetAllData() {
 // ==================== HELPERS ====================
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, """);
 }
 
 function formatTime(ts) {
