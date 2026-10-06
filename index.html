@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>anti_gov_404</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div id="app">
@@ -13,7 +14,7 @@
     <section id="screen-home" class="screen active">
       <div class="container">
         <div class="logo">anti_gov_<span>404</span></div>
-        <p class="tagline">Acesso restrito • Grupo privado</p>
+        <p class="tagline">Acesso restrito • Grupo privado • Real</p>
 
         <div class="rules-box">
           <h2>📜 Regras do Grupo</h2>
@@ -28,31 +29,46 @@
           </ul>
         </div>
 
-        <button class="btn primary" onclick="showScreen('apply')">Solicitar Entrada</button>
-        <button class="btn ghost" onclick="tryEnter()">Já sou membro</button>
-        <p class="hint">Demo estática (localStorage). Dados ficam só no seu navegador.</p>
+        <button class="btn primary" onclick="showScreen('auth')">Entrar / Cadastrar</button>
+        <p class="hint" id="home-hint">Site real com Supabase. Dados no banco de dados.</p>
       </div>
     </section>
 
-    <!-- ===== FORMULÁRIO DE ENTRADA ===== -->
-    <section id="screen-apply" class="screen">
+    <!-- ===== LOGIN / CADASTRO ===== -->
+    <section id="screen-auth" class="screen">
       <div class="container narrow">
-        <h1>Solicitar Acesso</h1>
-        <p class="sub">Preencha o formulário. Um administrador precisa te aceitar.</p>
+        <h1 id="auth-title">Entrar</h1>
+        <p class="sub" id="auth-sub">Use e-mail e senha</p>
 
-        <form id="apply-form" onsubmit="submitApplication(event)">
-          <label>Apelido / Nick</label>
-          <input type="text" id="nick" required minlength="3" maxlength="20" placeholder="ex: phantom_404" />
+        <div class="tabs">
+          <button class="tab active" id="tab-login" onclick="switchAuthTab('login')">Login</button>
+          <button class="tab" id="tab-register" onclick="switchAuthTab('register')">Cadastrar</button>
+        </div>
 
-          <label>Motivo / Por que quer entrar?</label>
-          <textarea id="reason" required minlength="10" maxlength="300" placeholder="Conte brevemente..."></textarea>
+        <form id="auth-form" onsubmit="handleAuth(event)">
+          <div id="nick-field" class="hidden">
+            <label>Nick / Apelido</label>
+            <input type="text" id="auth-nick" minlength="3" maxlength="20" placeholder="ex: phantom_404" />
+          </div>
 
-          <label>Como conheceu o grupo?</label>
-          <input type="text" id="how" maxlength="100" placeholder="opcional" />
+          <label>E-mail</label>
+          <input type="email" id="auth-email" required placeholder="seu@email.com" />
 
-          <button type="submit" class="btn primary full">Enviar Solicitação</button>
+          <label>Senha</label>
+          <input type="password" id="auth-password" required minlength="6" placeholder="mínimo 6 caracteres" />
+
+          <div id="register-extra" class="hidden">
+            <label>Motivo / Por que quer entrar?</label>
+            <textarea id="auth-reason" minlength="10" maxlength="300" placeholder="Conte brevemente..."></textarea>
+
+            <label>Como conheceu o grupo?</label>
+            <input type="text" id="auth-how" maxlength="100" placeholder="opcional" />
+          </div>
+
+          <button type="submit" class="btn primary full" id="auth-btn">Entrar</button>
         </form>
 
+        <p id="auth-error" class="error-msg hidden"></p>
         <button class="btn ghost" onclick="showScreen('home')">Voltar</button>
       </div>
     </section>
@@ -62,8 +78,18 @@
       <div class="container narrow center">
         <div class="icon-big">⏳</div>
         <h1>Aguardando aprovação</h1>
-        <p>Sua solicitação foi enviada.<br>Um administrador precisa te aceitar.</p>
+        <p>Sua conta foi criada.<br>Um administrador precisa te aceitar.</p>
         <p class="nick-display" id="pending-nick"></p>
+        <button class="btn ghost" onclick="logout()">Sair</button>
+      </div>
+    </section>
+
+    <!-- ===== BANIDO ===== -->
+    <section id="screen-banned" class="screen">
+      <div class="container narrow center">
+        <div class="icon-big">🚫</div>
+        <h1>Você foi banido</h1>
+        <p id="ban-reason-text">Motivo: violação das regras.</p>
         <button class="btn ghost" onclick="logout()">Sair</button>
       </div>
     </section>
@@ -90,7 +116,7 @@
       </div>
     </section>
 
-    <!-- ===== PAINEL ADMIN (só aparece para admin/owner) ===== -->
+    <!-- ===== PAINEL ADMIN ===== -->
     <div id="admin-panel" class="admin-panel hidden">
       <div class="admin-header">
         <h2>Painel Administrador</h2>
@@ -112,7 +138,6 @@
         <button class="btn danger full" onclick="clearChat()">Limpar todo o chat</button>
       </div>
 
-      <!-- Painel do Dono (escondido) -->
       <div id="owner-section" class="admin-section hidden">
         <h3>🔑 Painel do Dono</h3>
         <p class="small">Promover membro a Administrador:</p>
@@ -120,21 +145,12 @@
           <input type="text" id="promote-nick" placeholder="Nick do usuário" />
           <button class="btn primary" onclick="promoteToAdmin()">Promover</button>
         </div>
-        <button class="btn ghost full" style="margin-top:8px" onclick="resetAllData()">Resetar TODOS os dados (cuidado)</button>
-      </div>
-    </div>
-
-    <!-- Modal de ban -->
-    <div id="ban-modal" class="modal hidden">
-      <div class="modal-content">
-        <h2>🚫 Você foi banido</h2>
-        <p id="ban-reason">Motivo: violação das regras.</p>
-        <p class="small">Este ban é permanente neste navegador.</p>
       </div>
     </div>
 
   </div>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
