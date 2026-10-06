@@ -26,7 +26,7 @@ Depois de ativar o Pages:
 
 ### Virar o Dono (você):
 - Na tela inicial, clique **5 vezes** no logo `anti_gov_404`
-- Digite a senha: `404owner`
+- Digite a senha do dono (definida no código)
 - Você entra como **owner** e vê o painel completo
 
 ### Fluxo normal de usuário:
@@ -48,6 +48,3 @@ Este é um **demo estático** (só HTML + CSS + JS + localStorage).
 - Para ter chat real + banco de dados + ban permanente de verdade seria necessário um backend (Firebase, Supabase, etc.)
 
 Para um protótipo visual e de fluxo, funciona bem.
-
----
-Senha do dono padrão: `404owner` (pode mudar no arquivo `app.js`)
