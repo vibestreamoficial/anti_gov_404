@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>anti_gov_404</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== TELA INICIAL / REGRAS ===== -->
+    <section id="screen-home" class="screen active">
+      <div class="container">
+        <div class="logo">anti_gov_<span>404</span></div>
+        <p class="tagline">Acesso restrito • Grupo privado</p>
+
+        <div class="rules-box">
+          <h2>📜 Regras do Grupo</h2>
+          <ul>
+            <li>É proibido ameaças, acusações falsas e fake news.</li>
+            <li>Conteúdo gore, sexual explícito ou ilegal = ban permanente.</li>
+            <li>Respeito entre membros. Sem ofensas pessoais graves.</li>
+            <li>Não compartilhe dados pessoais de terceiros.</li>
+            <li>O bot de moderação atua 24h. Ban automático em casos graves.</li>
+            <li>Administradores podem banir e remover mensagens a qualquer momento.</li>
+            <li>Este é um espaço de discussão. Não use para atividades ilegais.</li>
+          </ul>
+        </div>
+
+        <button class="btn primary" onclick="showScreen('apply')">Solicitar Entrada</button>
+        <button class="btn ghost" onclick="tryEnter()">Já sou membro</button>
+        <p class="hint">Demo estática (localStorage). Dados ficam só no seu navegador.</p>
+      </div>
+    </section>
+
+    <!-- ===== FORMULÁRIO DE ENTRADA ===== -->
+    <section id="screen-apply" class="screen">
+      <div class="container narrow">
+        <h1>Solicitar Acesso</h1>
+        <p class="sub">Preencha o formulário. Um administrador precisa te aceitar.</p>
+
+        <form id="apply-form" onsubmit="submitApplication(event)">
+          <label>Apelido / Nick</label>
+          <input type="text" id="nick" required minlength="3" maxlength="20" placeholder="ex: phantom_404" />
+
+          <label>Motivo / Por que quer entrar?</label>
+          <textarea id="reason" required minlength="10" maxlength="300" placeholder="Conte brevemente..."></textarea>
+
+          <label>Como conheceu o grupo?</label>
+          <input type="text" id="how" maxlength="100" placeholder="opcional" />
+
+          <button type="submit" class="btn primary full">Enviar Solicitação</button>
+        </form>
+
+        <button class="btn ghost" onclick="showScreen('home')">Voltar</button>
+      </div>
+    </section>
+
+    <!-- ===== AGUARDANDO APROVAÇÃO ===== -->
+    <section id="screen-pending" class="screen">
+      <div class="container narrow center">
+        <div class="icon-big">⏳</div>
+        <h1>Aguardando aprovação</h1>
+        <p>Sua solicitação foi enviada.<br>Um administrador precisa te aceitar.</p>
+        <p class="nick-display" id="pending-nick"></p>
+        <button class="btn ghost" onclick="logout()">Sair</button>
+      </div>
+    </section>
+
+    <!-- ===== CHAT GLOBAL ===== -->
+    <section id="screen-chat" class="screen">
+      <header class="chat-header">
+        <div class="logo-sm">anti_gov_<span>404</span></div>
+        <div class="header-right">
+          <span id="user-role" class="badge"></span>
+          <span id="user-nick"></span>
+          <button class="btn-icon" onclick="toggleAdminPanel()" id="btn-admin" title="Painel Admin" style="display:none">⚙️</button>
+          <button class="btn-icon" onclick="logout()" title="Sair">⏻</button>
+        </div>
+      </header>
+
+      <div id="messages" class="messages"></div>
+
+      <div class="chat-input-area">
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="sendPhoto(event)" />
+        <button class="btn-icon" onclick="document.getElementById('photo-input').click()" title="Enviar foto">📷</button>
+        <input type="text" id="msg-input" placeholder="Digite sua mensagem..." maxlength="500" onkeydown="if(event.key==='Enter')sendMessage()" />
+        <button class="btn primary" onclick="sendMessage()">Enviar</button>
+      </div>
+    </section>
+
+    <!-- ===== PAINEL ADMIN (só aparece para admin/owner) ===== -->
+    <div id="admin-panel" class="admin-panel hidden">
+      <div class="admin-header">
+        <h2>Painel Administrador</h2>
+        <button class="btn-icon" onclick="toggleAdminPanel()">✕</button>
+      </div>
+
+      <div class="admin-section">
+        <h3>Solicitações Pendentes</h3>
+        <div id="pending-list"></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Membros</h3>
+        <div id="members-list"></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Ações rápidas</h3>
+        <button class="btn danger full" onclick="clearChat()">Limpar todo o chat</button>
+      </div>
+
+      <!-- Painel do Dono (escondido) -->
+      <div id="owner-section" class="admin-section hidden">
+        <h3>🔑 Painel do Dono</h3>
+        <p class="small">Promover membro a Administrador:</p>
+        <div class="row">
+          <input type="text" id="promote-nick" placeholder="Nick do usuário" />
+          <button class="btn primary" onclick="promoteToAdmin()">Promover</button>
+        </div>
+        <button class="btn ghost full" style="margin-top:8px" onclick="resetAllData()">Resetar TODOS os dados (cuidado)</button>
+      </div>
+    </div>
+
+    <!-- Modal de ban -->
+    <div id="ban-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>🚫 Você foi banido</h2>
+        <p id="ban-reason">Motivo: violação das regras.</p>
+        <p class="small">Este ban é permanente neste navegador.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
