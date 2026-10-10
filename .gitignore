@@ -1,19 +1,10 @@
-# Banco de dados (NÃO sobe pro GitHub)
-*.db
-*.sqlite
-*.sqlite3
-/data/
-/db/
-
-# Segredos e ambiente
+node_modules/
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+uploads/*
+!uploads/.gitkeep
 .env
 .env.*
-
-# Dependências e uploads
-node_modules/
-uploads/
-
-# Logs e sistema
 *.log
 .DS_Store
-npm-debug.log*
