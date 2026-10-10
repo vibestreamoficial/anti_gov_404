@@ -1,11 +1,19 @@
-# Node
-node_modules/
+# Banco de dados (NÃO sobe pro GitHub)
+*.db
+*.sqlite
+*.sqlite3
+/data/
+/db/
+
+# Segredos e ambiente
 .env
-.env.local
-npm-debug.log*
+.env.*
 
-# OS
-.DS_Store
+# Dependências e uploads
+node_modules/
+uploads/
 
-# Build / runtime
+# Logs e sistema
 *.log
+.DS_Store
+npm-debug.log*
