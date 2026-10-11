@@ -2,6 +2,9 @@ const $ = (id) => document.getElementById(id);
 let token = localStorage.getItem('ag404_token');
 let currentUser = null;
 let myIp = '...';
+let envInfo = {};
+
+const BLOCKED_NICK = [/admin/i, /^adm$/i, /\badm\b/i, /hacker/i, /hack/i, /root/i, /owner/i, /moderator/i, /ameaca/i, /ameaça/i, /matar/i, /terror/i];
 
 function setScreen(n) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
@@ -47,14 +50,47 @@ function showErr(m) {
   e.textContent = m;
   e.classList.remove('hidden');
 }
+function nickBlocked(nick) {
+  return BLOCKED_NICK.some((re) => re.test(nick));
+}
+function detectEnv() {
+  const ua = navigator.userAgent || '';
+  const p = navigator.platform || '';
+  const cores = navigator.hardwareConcurrency || 0;
+  const mem = navigator.deviceMemory || 0;
+  const touch = navigator.maxTouchPoints || 0;
+  const win = /Windows/i.test(ua) || /Win/i.test(p);
+  // sinais fracos de VM / ambiente estranho (nao e 100%)
+  const maybeVm =
+    win &&
+    (cores <= 2 || mem > 0 && mem <= 2 || /VirtualBox|VMware|Hyper-V|QEMU|Xen/i.test(ua));
+  envInfo = {
+    ua: ua.slice(0, 120),
+    platform: p,
+    windows: win,
+    maybeVm: !!maybeVm,
+    cores: cores,
+    touch: touch
+  };
+  return envInfo;
+}
 function logIntrusion(action) {
   const d = db();
-  d.ipLogs.unshift({ ip: myIp, action: action, at: new Date().toISOString(), nick: (me() && me().nick) || 'anon' });
-  d.ipLogs = d.ipLogs.slice(0, 80);
+  d.ipLogs.unshift({
+    ip: myIp,
+    action: action,
+    at: new Date().toISOString(),
+    nick: (me() && me().nick) || 'anon',
+    windows: !!(envInfo && envInfo.windows),
+    maybeVm: !!(envInfo && envInfo.maybeVm),
+    ua: (envInfo && envInfo.ua) || ''
+  });
+  d.ipLogs = d.ipLogs.slice(0, 100);
   save(d);
 }
 
 async function loadIp() {
+  detectEnv();
   try {
     const r = await fetch('https://api.ipify.org?format=json');
     const j = await r.json();
@@ -62,10 +98,13 @@ async function loadIp() {
   } catch (e) {
     myIp = 'local';
   }
-  if ($('my-ip-label')) $('my-ip-label').textContent = 'Seu IP: ' + myIp;
+  if ($('my-ip-label')) {
+    $('my-ip-label').textContent =
+      'Seu IP: ' + myIp + (envInfo.windows ? ' | Windows' : '') + (envInfo.maybeVm ? ' | possivel VM' : '');
+  }
   if (db().ipBans.indexOf(myIp) >= 0) {
     document.body.innerHTML =
-      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0e14;color:#ff3b5c;font-family:system-ui;padding:20px;text-align:center"><div><h1>IP bloqueado</h1><p>' +
+      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0e14;color:#ff3b5c;font-family:system-ui;padding:20px;text-align:center"><div><h1>405 / IP bloqueado</h1><p>' +
       esc(myIp) +
       '</p></div></div>';
     return false;
@@ -96,16 +135,38 @@ $('auth-form').onsubmit = function (e) {
     const d = db();
     if (isReg) {
       if (nick.length < 2) throw new Error('Nick obrigatorio');
+      if (nickBlocked(nick)) {
+        logIntrusion('nick_bloqueado:' + nick);
+        throw new Error('Nick nao permitido (adm/hacker/ameaca)');
+      }
       if (d.users.find((u) => u.nick === nick)) throw new Error('Nick ja existe');
-      const u = { id: d.nextId++, nick: nick, password: password, role: 'user', status: 'pending', reason: reason, ip: myIp };
+      // Bot auto-aprova solicitacao limpa
+      const u = {
+        id: d.nextId++,
+        nick: nick,
+        password: password,
+        role: 'user',
+        status: 'approved',
+        reason: reason,
+        ip: myIp,
+        windows: !!envInfo.windows,
+        maybeVm: !!envInfo.maybeVm
+      };
       d.users.push(u);
       save(d);
       token = 'local-' + u.id;
       localStorage.setItem('ag404_token', token);
+      alert('Bot: solicitacao aceita. Bem-vindo.');
     } else {
+      if (nick !== 'admin' && nickBlocked(nick)) {
+        logIntrusion('login_nick_bloqueado:' + nick);
+        throw new Error('Nick nao permitido');
+      }
       const u = d.users.find((x) => x.nick === nick && x.password === password);
       if (!u) throw new Error('Nick ou senha incorretos');
       u.lastIp = myIp;
+      u.windows = !!envInfo.windows;
+      u.maybeVm = !!envInfo.maybeVm;
       save(d);
       token = 'local-' + u.id;
       localStorage.setItem('ag404_token', token);
@@ -153,8 +214,11 @@ function enterChat() {
   $('user-role').className = 'badge ' + currentUser.role;
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
   $('btn-admin').classList.toggle('hidden', !isAdmin);
-  $('btn-owner').classList.toggle('hidden', currentUser.role !== 'owner');
-  if ($('my-ip-label')) $('my-ip-label').textContent = 'Seu IP: ' + myIp;
+  if ($('btn-owner')) $('btn-owner').classList.toggle('hidden', currentUser.role !== 'owner');
+  if ($('my-ip-label')) {
+    $('my-ip-label').textContent =
+      'Seu IP: ' + myIp + (envInfo.windows ? ' | Windows' : '') + (envInfo.maybeVm ? ' | possivel VM' : '');
+  }
   loadMessages();
 }
 
@@ -171,13 +235,8 @@ function renderMsg(msg) {
   const div = document.createElement('div');
   div.className = 'msg' + (msg.flagged ? ' flag' : '');
   div.setAttribute('data-id', msg.id);
-  const adm = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
   div.innerHTML =
-    '<div class="meta"><span class="author">' +
-    esc(msg.nick) +
-    '</span></div><div>' +
-    esc(msg.text || '') +
-    '</div>';
+    '<div class="meta"><span class="author">' + esc(msg.nick) + '</span></div><div>' + esc(msg.text || '') + '</div>';
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
@@ -193,7 +252,7 @@ function sendMsg() {
     return;
   }
   const d = db();
-  const flagged = /matar|bomba|fake news|ameaca|ameaça|calunia|calúnia/i.test(text);
+  const flagged = /matar|bomba|fake news|ameaca|ameaça|calunia|calúnia|hacker|doxx/i.test(text);
   const msg = {
     id: d.nextMsg++,
     nick: u.nick,
@@ -205,7 +264,7 @@ function sendMsg() {
   save(d);
   input.value = '';
   if (flagged) {
-    $('bot-banner').textContent = 'Bot: ' + msg.flag_reason;
+    $('bot-banner').textContent = 'Bot: mensagem suspeita';
     $('bot-banner').classList.remove('hidden');
   }
   renderMsg(msg);
@@ -219,7 +278,13 @@ function toggleAdmin() {
   const u = me();
   if (!u || (u.role !== 'admin' && u.role !== 'owner')) {
     logIntrusion('tentativa_painel_admin');
-    alert('405 - acesso negado. IP registrado: ' + myIp);
+    // auto ban IP em invasao
+    const d = db();
+    if (myIp && d.ipBans.indexOf(myIp) < 0) {
+      d.ipBans.push(myIp);
+      save(d);
+    }
+    alert('405 Method Not Allowed\nIP registrado e banido: ' + myIp + (envInfo.windows ? '\nWindows detectado' : '') + (envInfo.maybeVm ? '\nPossivel PC virtual' : ''));
     return;
   }
   $('admin-panel').classList.toggle('hidden');
@@ -234,7 +299,10 @@ function refreshAdmin() {
     return;
   }
   const d = db();
-  if ($('my-ip-label')) $('my-ip-label').textContent = 'Seu IP: ' + myIp;
+  if ($('my-ip-label')) {
+    $('my-ip-label').textContent =
+      'Seu IP: ' + myIp + (envInfo.windows ? ' | Windows' : '') + (envInfo.maybeVm ? ' | possivel VM' : '');
+  }
 
   const pending = d.users.filter((x) => x.status === 'pending');
   $('pending-list').innerHTML = pending.length
@@ -254,7 +322,7 @@ function refreshAdmin() {
           );
         })
         .join('')
-    : '<p class="sub">Nenhum</p>';
+    : '<p class="sub">Nenhum (bot auto-aprova solicitacoes limpas)</p>';
 
   $('members-list').innerHTML = d.users
     .map(function (x) {
@@ -265,6 +333,8 @@ function refreshAdmin() {
         x.role +
         ' / ' +
         x.status +
+        (x.windows ? ' | Win' : '') +
+        (x.maybeVm ? ' | VM?' : '') +
         (x.nick !== 'admin'
           ? '<div class="actions"><button type="button" class="btn sm ban" data-act="ban" data-id="' +
             x.id +
@@ -282,22 +352,22 @@ function refreshAdmin() {
 
   $('ip-logs').innerHTML = d.ipLogs.length
     ? d.ipLogs
-        .slice(0, 25)
+        .slice(0, 30)
         .map(function (l) {
           return (
             '<div class="item">' +
             esc(l.ip) +
             ' · ' +
             esc(l.action) +
-            ' · ' +
-            esc(l.nick) +
+            (l.windows ? ' · Win' : '') +
+            (l.maybeVm ? ' · VM?' : '') +
             '<div class="actions"><button type="button" class="btn sm ban" data-act="banip" data-ip="' +
             esc(l.ip) +
             '">Banir IP</button></div></div>'
           );
         })
         .join('')
-    : '<p class="sub">Nenhuma tentativa ainda. Quem nao for admin e clicar Admin entra aqui.</p>';
+    : '<p class="sub">Nenhuma tentativa</p>';
 
   $('ip-bans').innerHTML = d.ipBans.length
     ? d.ipBans
@@ -362,7 +432,12 @@ function openOwnerPanel() {
   const u = me();
   if (!u || u.role !== 'owner') {
     logIntrusion('tentativa_painel_owner');
-    alert('405 - so owner. IP: ' + myIp);
+    const d = db();
+    if (myIp && d.ipBans.indexOf(myIp) < 0) {
+      d.ipBans.push(myIp);
+      save(d);
+    }
+    alert('405 - so owner. IP banido: ' + myIp);
     return;
   }
   const d = db();
@@ -371,15 +446,13 @@ function openOwnerPanel() {
     esc(myIp) +
     ' | Users: ' +
     d.users.length +
-    ' | Msgs: ' +
-    d.messages.length +
     ' | IP bans: ' +
     d.ipBans.length +
     '</p>' +
     d.ipLogs
       .slice(0, 20)
       .map(function (l) {
-        return '<div class="item">' + esc(l.ip) + ' | ' + esc(l.action) + '</div>';
+        return '<div class="item">' + esc(l.ip) + ' | ' + esc(l.action) + (l.maybeVm ? ' | VM?' : '') + '</div>';
       })
       .join('');
   $('owner-panel').classList.remove('hidden');
