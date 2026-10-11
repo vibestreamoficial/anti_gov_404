@@ -5,38 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache">
   <title>anti_gov_404</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div id="screen-auth" class="screen active">
     <div class="box">
       <h1>anti_gov_404</h1>
-      <p class="sub">Acesso mediante aprovação</p>
+      <p class="sub">Acesso mediante aprovacao</p>
       <div class="tabs">
         <button type="button" class="tab active" data-mode="login">Entrar</button>
         <button type="button" class="tab" data-mode="register">Solicitar</button>
       </div>
       <form id="auth-form">
-        <input id="auth-nick" placeholder="Nick" required autocomplete="username">
-        <input id="auth-password" type="password" placeholder="Senha" required autocomplete="current-password">
-        <input id="auth-reason" class="reg-only hidden" placeholder="Motivo do pedido (opcional)">
+        <input id="auth-nick" placeholder="Nick" required>
+        <input id="auth-password" type="password" placeholder="Senha" required>
+        <input id="auth-reason" class="reg-only hidden" placeholder="Motivo (opcional)">
         <p id="auth-error" class="error hidden"></p>
         <button type="submit" class="btn" id="auth-btn">Entrar</button>
       </form>
-      <p class="hint">Admin: admin / admin123</p>
+      <p class="hint">Admin: admin / admin123 · Bot auto-aceita e manda pro chat</p>
     </div>
   </div>
-
   <div id="screen-pending" class="screen">
     <div class="box">
-      <h2>Aguardando aprovação</h2>
+      <h2>Aguardando aprovacao</h2>
       <p>Nick: <strong id="pending-nick"></strong></p>
-      <p class="sub">O administrador precisa aceitar seu formulário.</p>
       <button class="btn" type="button" onclick="checkMe()">Verificar status</button>
       <button class="btn outline" type="button" onclick="logout()">Sair</button>
     </div>
   </div>
-
   <div id="screen-banned" class="screen">
     <div class="box">
       <h2>Conta banida</h2>
@@ -44,7 +41,6 @@
       <button class="btn outline" type="button" onclick="logout()">Sair</button>
     </div>
   </div>
-
   <div id="screen-chat" class="screen">
     <header>
       <div>
@@ -63,26 +59,18 @@
       <h3>Painel administrador</h3>
       <p class="sub" id="my-ip-label">IP: ...</p>
       <div class="admin-grid">
-        <div>
-          <h4>Pendentes</h4>
-          <div id="pending-list"></div>
-        </div>
-        <div>
-          <h4>Membros</h4>
-          <div id="members-list"></div>
-        </div>
-        <div>
-          <h4>Flagados pelo bot</h4>
-          <div id="flagged-list"></div>
-        </div>
+        <div><h4>Pendentes</h4><div id="pending-list"></div></div>
+        <div><h4>Aceitos pelo bot</h4><div id="bot-accepted-list"></div></div>
+        <div><h4>Membros</h4><div id="members-list"></div></div>
+        <div><h4>Flagados</h4><div id="flagged-list"></div></div>
       </div>
-      <h4 style="margin-top:12px;color:#ffaa00">IPs / tentativas de invasão</h4>
+      <h4 style="margin-top:12px;color:#ffaa00">IPs / invasoes</h4>
       <div id="ip-logs"></div>
       <h4 style="margin-top:10px">IPs banidos</h4>
       <div id="ip-bans"></div>
     </div>
     <div id="owner-panel" class="admin-panel hidden">
-      <h3>Painel Owner</h3>
+      <h3>Owner</h3>
       <div id="owner-body"></div>
       <button type="button" class="btn sm outline" onclick="document.getElementById('owner-panel').classList.add('hidden')">Fechar</button>
     </div>
@@ -92,7 +80,6 @@
       <button type="button" class="btn sm" onclick="sendMsg()">Enviar</button>
     </div>
   </div>
-
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
