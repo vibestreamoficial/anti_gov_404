@@ -3,8 +3,11 @@ let token = localStorage.getItem('ag404_token');
 let currentUser = null;
 let myIp = '...';
 let envInfo = {};
+let failCount = Number(sessionStorage.getItem('ag404_fails') || 0);
 
+const DEFAULT_OWNER_PASS = 'A404#Owner9x';
 const BLOCKED_NICK = [/admin/i, /^adm$/i, /\badm\b/i, /hacker/i, /hack/i, /root/i, /owner/i, /moderator/i, /ameaca/i, /ameaça/i, /matar/i, /terror/i];
+const SCAN_UA = /dirb|dirbuster|gobuster|nikto|sqlmap|nmap|masscan|wfuzz|ffuf|burp|zaproxy|acunetix|nessus|openvas|wget\/|curl\/|python-requests|scrapy|httpclient|libwww/i;
 
 function setScreen(n) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
@@ -25,10 +28,16 @@ function db() {
     if (!d.messages) d.messages = [];
     if (!d.nextId) d.nextId = 2;
     if (!d.nextMsg) d.nextMsg = 1;
+    // migra senha antiga admin123 -> nova (uma vez)
+    const owner = d.users.find((u) => u.nick === 'admin' && u.role === 'owner');
+    if (owner && (owner.password === 'admin123' || !owner.password)) {
+      owner.password = DEFAULT_OWNER_PASS;
+      localStorage.setItem('ag404_db', JSON.stringify(d));
+    }
     return d;
   }
   const d = {
-    users: [{ id: 1, nick: 'admin', password: 'admin123', role: 'owner', status: 'approved', reason: '' }],
+    users: [{ id: 1, nick: 'admin', password: DEFAULT_OWNER_PASS, role: 'owner', status: 'approved', reason: '' }],
     messages: [],
     ipBans: [],
     ipLogs: [],
@@ -55,6 +64,20 @@ function showErr(m) {
 function nickBlocked(nick) {
   return BLOCKED_NICK.some((re) => re.test(nick));
 }
+function banIpNow(reason) {
+  const d = db();
+  if (myIp && d.ipBans.indexOf(myIp) < 0) d.ipBans.push(myIp);
+  d.ipLogs.unshift({
+    ip: myIp,
+    action: reason || 'ban',
+    at: new Date().toISOString(),
+    nick: (me() && me().nick) || 'anon',
+    windows: !!(envInfo && envInfo.windows),
+    maybeVm: !!(envInfo && envInfo.maybeVm)
+  });
+  d.ipLogs = d.ipLogs.slice(0, 100);
+  save(d);
+}
 function detectEnv() {
   const ua = navigator.userAgent || '';
   const p = navigator.platform || '';
@@ -62,7 +85,7 @@ function detectEnv() {
   const mem = navigator.deviceMemory || 0;
   const win = /Windows/i.test(ua) || /Win/i.test(p);
   const maybeVm = win && (cores <= 2 || (mem > 0 && mem <= 2) || /VirtualBox|VMware|Hyper-V|QEMU|Xen/i.test(ua));
-  envInfo = { ua: ua.slice(0, 120), platform: p, windows: win, maybeVm: !!maybeVm, cores: cores };
+  envInfo = { ua: ua.slice(0, 160), platform: p, windows: win, maybeVm: !!maybeVm, cores: cores };
   return envInfo;
 }
 function logIntrusion(action) {
@@ -81,6 +104,20 @@ function logIntrusion(action) {
 
 async function loadIp() {
   detectEnv();
+  // ferramentas tipo dirb/nikto/sqlmap no User-Agent -> bloqueia na hora
+  if (SCAN_UA.test(navigator.userAgent || '')) {
+    try {
+      const r = await fetch('https://api.ipify.org?format=json');
+      const j = await r.json();
+      myIp = j.ip || 'scan';
+    } catch (e) {
+      myIp = 'scan';
+    }
+    banIpNow('scan_tool_ua');
+    document.body.innerHTML =
+      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0e14;color:#ff3b5c;font-family:system-ui;padding:20px;text-align:center"><div><h1>405</h1><p>Ferramenta de scan bloqueada.</p></div></div>';
+    return false;
+  }
   try {
     const r = await fetch('https://api.ipify.org?format=json');
     const j = await r.json();
@@ -127,7 +164,13 @@ $('auth-form').onsubmit = function (e) {
       if (nick.length < 2) throw new Error('Nick obrigatorio');
       if (nickBlocked(nick)) {
         logIntrusion('nick_bloqueado:' + nick);
-        throw new Error('Nick nao permitido (adm/hacker/ameaca)');
+        failCount++;
+        sessionStorage.setItem('ag404_fails', String(failCount));
+        if (failCount >= 3) {
+          banIpNow('nick_ataque');
+          throw new Error('405 IP banido');
+        }
+        throw new Error('Nick nao permitido');
       }
       if (d.users.find((u) => u.nick === nick)) throw new Error('Nick ja existe');
       const u = {
@@ -148,21 +191,35 @@ $('auth-form').onsubmit = function (e) {
       save(d);
       token = 'local-' + u.id;
       localStorage.setItem('ag404_token', token);
+      failCount = 0;
+      sessionStorage.setItem('ag404_fails', '0');
       afterAuth();
       return;
     }
+    // LOGIN
     if (nick !== 'admin' && nickBlocked(nick)) {
       logIntrusion('login_nick_bloqueado:' + nick);
       throw new Error('Nick nao permitido');
     }
     const u = d.users.find((x) => x.nick === nick && x.password === password);
-    if (!u) throw new Error('Nick ou senha incorretos');
+    if (!u) {
+      failCount++;
+      sessionStorage.setItem('ag404_fails', String(failCount));
+      logIntrusion('login_falha:' + nick);
+      if (failCount >= 5 || (nick === 'admin' && failCount >= 3)) {
+        banIpNow('brute_force_login');
+        throw new Error('405 IP banido por tentativas');
+      }
+      throw new Error('Nick ou senha incorretos (' + failCount + '/5)');
+    }
     u.lastIp = myIp;
     u.windows = !!envInfo.windows;
     u.maybeVm = !!envInfo.maybeVm;
     save(d);
     token = 'local-' + u.id;
     localStorage.setItem('ag404_token', token);
+    failCount = 0;
+    sessionStorage.setItem('ag404_fails', '0');
     afterAuth();
   } catch (err) {
     showErr(err.message);
@@ -210,6 +267,25 @@ function enterChat() {
   if ($('my-ip-label')) {
     $('my-ip-label').textContent =
       'Seu IP: ' + myIp + (envInfo.windows ? ' | Windows' : '') + (envInfo.maybeVm ? ' | VM?' : '');
+  }
+  const btnPass = $('btn-change-pass');
+  if (btnPass) {
+    btnPass.onclick = function () {
+      const u = me();
+      if (!u || u.role !== 'owner') return;
+      const np = prompt('Nova senha do owner (min 8):');
+      if (!np || np.length < 8) {
+        alert('Senha fraca');
+        return;
+      }
+      const d = db();
+      const owner = d.users.find((x) => x.nick === 'admin');
+      if (owner) {
+        owner.password = np;
+        save(d);
+        alert('Senha alterada. Guarde ela.');
+      }
+    };
   }
   loadMessages();
 }
@@ -264,11 +340,7 @@ function toggleAdmin() {
   const u = me();
   if (!u || (u.role !== 'admin' && u.role !== 'owner')) {
     logIntrusion('tentativa_painel_admin');
-    const d = db();
-    if (myIp && d.ipBans.indexOf(myIp) < 0) {
-      d.ipBans.push(myIp);
-      save(d);
-    }
+    banIpNow('invasao_admin');
     alert('405 Method Not Allowed\nIP banido: ' + myIp);
     return;
   }
@@ -280,6 +352,7 @@ function refreshAdmin() {
   const u = me();
   if (!u || (u.role !== 'admin' && u.role !== 'owner')) {
     logIntrusion('tentativa_admin');
+    banIpNow('invasao_admin');
     alert('405');
     return;
   }
@@ -288,9 +361,7 @@ function refreshAdmin() {
     $('my-ip-label').textContent =
       'Seu IP: ' + myIp + (envInfo.windows ? ' | Windows' : '') + (envInfo.maybeVm ? ' | VM?' : '');
   }
-
-  $('pending-list').innerHTML = '<p class="sub">Bot auto-aceita. Veja Aceitos pelo bot + Membros.</p>';
-
+  $('pending-list').innerHTML = '<p class="sub">Bot auto-aceita. Veja Aceitos pelo bot.</p>';
   if ($('bot-accepted-list')) {
     const ba = d.botAccepted || [];
     $('bot-accepted-list').innerHTML = ba.length
@@ -302,13 +373,12 @@ function refreshAdmin() {
               esc(x.nick) +
               '</strong><div class="sub">IP ' +
               esc(x.ip || '') +
-              ' · bot aceitou</div></div>'
+              '</div></div>'
             );
           })
           .join('')
-      : '<p class="sub">Ninguem ainda (teste Solicitar no MESMO navegador)</p>';
+      : '<p class="sub">Ninguem ainda</p>';
   }
-
   $('members-list').innerHTML = d.users
     .map(function (x) {
       return (
@@ -327,12 +397,10 @@ function refreshAdmin() {
       );
     })
     .join('');
-
   const fl = d.messages.filter((m) => m.flagged);
   $('flagged-list').innerHTML = fl.length
     ? fl.map((m) => '<div class="item">@' + esc(m.nick) + ': ' + esc((m.text || '').slice(0, 80)) + '</div>').join('')
     : '<p class="sub">Nenhum</p>';
-
   $('ip-logs').innerHTML = d.ipLogs.length
     ? d.ipLogs
         .slice(0, 30)
@@ -350,8 +418,7 @@ function refreshAdmin() {
           );
         })
         .join('')
-    : '<p class="sub">Nenhuma tentativa</p>';
-
+    : '<p class="sub">Nenhuma</p>';
   $('ip-bans').innerHTML = d.ipBans.length
     ? d.ipBans
         .map(function (ip) {
@@ -364,7 +431,7 @@ function refreshAdmin() {
           );
         })
         .join('')
-    : '<p class="sub">Nenhum IP banido</p>';
+    : '<p class="sub">Nenhum</p>';
 }
 
 document.addEventListener('click', function (ev) {
@@ -391,7 +458,6 @@ document.addEventListener('click', function (ev) {
     if (d.ipBans.indexOf(ip) < 0) d.ipBans.push(ip);
     save(d);
     refreshAdmin();
-    alert('IP banido: ' + ip);
   }
   if (act === 'unbanip' && ip) {
     d.ipBans = d.ipBans.filter((x) => x !== ip);
@@ -404,12 +470,8 @@ function openOwnerPanel() {
   const u = me();
   if (!u || u.role !== 'owner') {
     logIntrusion('tentativa_painel_owner');
-    const d = db();
-    if (myIp && d.ipBans.indexOf(myIp) < 0) {
-      d.ipBans.push(myIp);
-      save(d);
-    }
-    alert('405 - so owner. IP: ' + myIp);
+    banIpNow('invasao_owner');
+    alert('405 owner only. IP banido: ' + myIp);
     return;
   }
   const d = db();
@@ -418,13 +480,9 @@ function openOwnerPanel() {
     esc(myIp) +
     ' | Users: ' +
     d.users.length +
-    '</p>' +
-    (d.botAccepted || [])
-      .slice(0, 20)
-      .map(function (x) {
-        return '<div class="item">@' + esc(x.nick) + ' ' + esc(x.ip || '') + '</div>';
-      })
-      .join('');
+    ' | Bans: ' +
+    d.ipBans.length +
+    '</p>';
   $('owner-panel').classList.remove('hidden');
 }
 
