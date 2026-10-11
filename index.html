@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store">
   <title>anti_gov_404</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div id="screen-auth" class="screen active">
@@ -17,13 +17,13 @@
         <button type="button" class="tab" data-mode="register">Solicitar</button>
       </div>
       <form id="auth-form">
-        <input id="auth-nick" placeholder="Nick" required autocomplete="username">
-        <input id="auth-password" type="password" placeholder="Senha" required autocomplete="current-password">
+        <input id="auth-nick" placeholder="Nick" required>
+        <input id="auth-password" type="password" placeholder="Senha" required>
         <input id="auth-reason" class="reg-only hidden" placeholder="Motivo (opcional)">
         <p id="auth-error" class="error hidden"></p>
         <button type="submit" class="btn" id="auth-btn">Entrar</button>
       </form>
-      <p class="hint">Bot auto-aceita solicitacoes limpas e manda pro chat</p>
+      <p class="hint">Bot auto-aceita e manda pro chat. No GitHub Pages o chat e local por aparelho.</p>
     </div>
   </div>
   <div id="screen-pending" class="screen">
@@ -54,6 +54,9 @@
         <button type="button" class="btn sm outline" onclick="logout()">Sair</button>
       </div>
     </header>
+    <div id="sync-banner" class="bot-banner" style="display:block;background:rgba(255,170,0,.2);color:#ffcc66;border-color:#ffaa00">
+      Chat neste link (Pages): cada celular ve so as msgs dele. Chat global entre pessoas = servidor Node.
+    </div>
     <div id="bot-banner" class="bot-banner hidden"></div>
     <div id="admin-panel" class="admin-panel hidden">
       <h3>Painel administrador</h3>
@@ -64,7 +67,7 @@
         <div><h4>Membros</h4><div id="members-list"></div></div>
         <div><h4>Flagados</h4><div id="flagged-list"></div></div>
       </div>
-      <h4 style="margin-top:12px;color:#ffaa00">IPs / invasoes / scans</h4>
+      <h4 style="margin-top:12px;color:#ffaa00">IPs / invasoes</h4>
       <div id="ip-logs"></div>
       <h4 style="margin-top:10px">IPs banidos</h4>
       <div id="ip-bans"></div>
@@ -81,6 +84,6 @@
       <button type="button" class="btn sm" onclick="sendMsg()">Enviar</button>
     </div>
   </div>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
