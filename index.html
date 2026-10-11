@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache">
   <title>anti_gov_404</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <div id="screen-auth" class="screen active">
@@ -16,13 +17,13 @@
         <button type="button" class="tab" data-mode="register">Solicitar</button>
       </div>
       <form id="auth-form">
-        <input id="auth-nick" placeholder="Nick" required>
-        <input id="auth-password" type="password" placeholder="Senha" required>
+        <input id="auth-nick" placeholder="Nick" required autocomplete="username">
+        <input id="auth-password" type="password" placeholder="Senha" required autocomplete="current-password">
         <input id="auth-reason" class="reg-only hidden" placeholder="Motivo do pedido (opcional)">
         <p id="auth-error" class="error hidden"></p>
         <button type="submit" class="btn" id="auth-btn">Entrar</button>
       </form>
-      <p class="hint">Hospedado no GitHub Pages (interface). Chat real precisa do servidor Node.</p>
+      <p class="hint">Admin: admin / admin123</p>
     </div>
   </div>
 
@@ -47,18 +48,20 @@
   <div id="screen-chat" class="screen">
     <header>
       <div>
-        <strong>anti_gov_404</strong>
+        <strong id="brand-title">anti_gov_404</strong>
         <span id="user-nick"></span>
         <span id="user-role" class="badge"></span>
       </div>
       <div>
         <button type="button" id="btn-admin" class="btn sm hidden" onclick="toggleAdmin()">Admin</button>
+        <button type="button" id="btn-owner" class="btn sm hidden" onclick="openOwnerPanel()">Owner</button>
         <button type="button" class="btn sm outline" onclick="logout()">Sair</button>
       </div>
     </header>
     <div id="bot-banner" class="bot-banner hidden"></div>
     <div id="admin-panel" class="admin-panel hidden">
       <h3>Painel administrador</h3>
+      <p class="sub" id="my-ip-label">IP: ...</p>
       <div class="admin-grid">
         <div>
           <h4>Pendentes</h4>
@@ -73,18 +76,23 @@
           <div id="flagged-list"></div>
         </div>
       </div>
+      <h4 style="margin-top:12px;color:#ffaa00">IPs / tentativas de invasão</h4>
+      <div id="ip-logs"></div>
+      <h4 style="margin-top:10px">IPs banidos</h4>
+      <div id="ip-bans"></div>
+    </div>
+    <div id="owner-panel" class="admin-panel hidden">
+      <h3>Painel Owner</h3>
+      <div id="owner-body"></div>
+      <button type="button" class="btn sm outline" onclick="document.getElementById('owner-panel').classList.add('hidden')">Fechar</button>
     </div>
     <div id="messages" class="messages"></div>
     <div class="composer">
-      <label class="photo-btn">
-        📷
-        <input type="file" id="photo-input" accept="image/*" hidden>
-      </label>
       <input id="msg-input" placeholder="Mensagem..." maxlength="500">
       <button type="button" class="btn sm" onclick="sendMsg()">Enviar</button>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
