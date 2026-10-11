@@ -1,14 +1,21 @@
 # anti_gov_404
 
-Chat real com formulário, painel admin e bot de moderação.
+Chat com formulário, painel admin e bot de moderação.
 
-## Stack
+## Site (GitHub Pages)
 
-- Node.js + Express + Socket.IO
-- SQLite (`data/anti_gov_404.db` — **não** vai pro Git)
-- Frontend em `public/`
+**https://vibestreamoficial.github.io/anti_gov_404/**
 
-## Rodar
+### Ativar Pages (1 vez)
+
+1. https://github.com/vibestreamoficial/anti_gov_404/settings/pages
+2. Source → **Deploy from a branch**
+3. Branch: **main** / Folder: **/ (root)**
+4. Save
+
+> GitHub Pages só mostra a **interface**. Chat/API de verdade precisam de `npm start` (Node + SQLite).
+
+## Rodar chat real (local / VPS)
 
 ```bash
 npm install
@@ -17,22 +24,16 @@ npm start
 
 Abra: http://localhost:3000
 
-**Admin:** `admin` / `admin123`  
-(troque a senha em produção)
+**Admin:** `admin` / `admin123` (troque em produção)
 
-## Fluxo
+## O que tem
 
-1. Usuário solicita acesso (register)
-2. Fica **pending**
-3. Admin aceita no painel
-4. Usuário entra no **chat global** (texto + foto)
-5. Bot marca ameaças / fake news / acusações
+- Formulário → aprovação admin → chat global
+- Texto + foto
+- Bot (ameaças, fake news, acusações)
+- Admin sem permissão → **HTTP 405**
+- SQLite em `data/` (não sobe no Git)
 
-## Segurança
+## Aviso
 
-- Rota admin sem permissão → **HTTP 405**
-- Banco e uploads no `.gitignore`
-
-## GitHub Pages
-
-Pages só serve estático. Este projeto precisa de Node (Railway, Render, VPS).
+Uso sob responsabilidade de quem hospeda. Não use para atividade ilegal.
